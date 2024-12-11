@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat App</title>
+    <style>
+        #chat {
+            height: 300px;
+            overflow-y: scroll;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        #typingStatus {
+            font-style: italic;
+            color: gray;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Chat App</h1>
+
+<p>Nickname: <input type="text" id="nicknameInput" placeholder="Enter your nickname" /></p>
+<button id="setNicknameBtn">Set Nickname</button>
+
+<p>Message: <input type="text" id="messageInput" placeholder="Type a message" /></p>
+<button id="sendBtn">Send Message</button>
+
+<div id="chat"></div>
+<div id="typingStatus"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    const socket = io();
+
+    const nicknameInput = document.getElementById('nicknameInput');
+    const setNicknameBtn = document.getElementById('setNicknameBtn');
+    const messageInput = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const chatDiv = document.getElementById('chat');
+    const typingStatusDiv = document.getElementById('typingStatus');
+
+    let username = '';
+
+    // Set nickname
+    setNicknameBtn.addEventListener('click', () => {
+        username = nicknameInput.value;
+        if (username) {
+            socket.emit('nickname', username);
+        }
+    });
+
+    // Emit chat message
+    sendBtn.addEventListener('click', () => {
+        const message = messageInput.value;
+        if (message) {
+            socket.emit('chat message', message);
+            messageInput.value = ''; // Clear the input field after sending the message
+        }
+    });
+
+    // Listen for incoming chat messages
+    socket.on('chat message', (msg) => {
+        const newMessage = document.createElement('p');
+        newMessage.textContent = msg;
+        chatDiv.appendChild(newMessage);
+        chatDiv.scrollTop = chatDiv.scrollHeight;  // Scroll to the bottom
+    });
+
+    // Listen for nickname event
+    socket.on('nickname', (msg) => {
+        alert(msg);
+    });
+
+    // Listen for typing events
+    socket.on('typing', (username) => {
+        typingStatusDiv.textContent = `${username} is typing...`;
+    });
+
+    // Listen for stop typing events
+    socket.on('stop typing', () => {
+        typingStatusDiv.textContent = '';  // Clear the typing status when the user stops typing
+    });
+
+    // Emit typing event when the user types
+    messageInput.addEventListener('input', () => {
+        if (messageInput.value) {
+            socket.emit('typing', username);
+        } else {
+            socket.emit('stop typing');
+        }
+    });
+</script>
+
+</body>
+</html>
